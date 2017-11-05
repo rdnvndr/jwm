@@ -172,78 +172,97 @@ char MoveClient(ClientNode *np, int startx, int starty)
          /* Determine if we are at a border for desktop switching. */
          sp = GetCurrentScreen(np->x + np->width / 2, np->y + np->height / 2);
          atLeft = atTop = atRight = atBottom = 0;
-         if(event.xmotion.x_root <= sp->x) {
-            atLeft = 1;
-         } else if(event.xmotion.x_root >= sp->x + sp->width - 1) {
-            atRight = 1;
-         }
-         if(event.xmotion.y_root <= sp->y) {
-            atTop = 1;
-         } else if(event.xmotion.y_root >= sp->y + sp->height - 1) {
-            atBottom = 1;
-         }
-
-         flags = MAX_NONE;
-         if(event.xmotion.state & Mod1Mask) {
-            /* Switch desktops immediately if alt is pressed. */
-            if(atLeft | atRight | atTop | atBottom) {
-               TimeType now;
-               GetCurrentTime(&now);
-               UpdateDesktop(&now);
+         MaxFlags flags = MAX_NONE;
+         if (!(event.xmotion.state & Mod1Mask) || !(np->state.status & STAT_AEROSNAP)) {
+            if(event.xmotion.x_root <= sp->x && LeftDesktop()) {
+               atLeft = 1;
+               SetClientDesktop(currentClient, currentDesktop);
+               RestackClients();
+               np->x = rootWidth - 2 - startx;
+               np->y = event.xmotion.y_root - starty;
+               MoveMouse(rootWindow, np->x + startx, np->y + starty);
+               DiscardMotionEvents(&event, np->window);
+            } else if(event.xmotion.x_root >= sp->x + sp->width - 1 && RightDesktop()) {
+               atRight = 1;
+               SetClientDesktop(currentClient, currentDesktop);
+               RestackClients();
+               np->x = 1 - startx;
+               np->y = event.xmotion.y_root - starty;
+               MoveMouse(rootWindow, np->x + startx, np->y + starty);
+               DiscardMotionEvents(&event, np->window);
             }
-         } else {
-            /* If alt is not pressed, snap to borders. */
-            if(np->state.status & STAT_AEROSNAP) {
-               if(atTop & atLeft) {
-                  if(atSideFirst) {
-                     flags = MAX_TOP | MAX_LEFT;
-                  } else {
-                     flags = MAX_TOP | MAX_HORIZ;
-                  }
-               } else if(atTop & atRight) {
-                  if(atSideFirst) {
-                     flags = MAX_TOP | MAX_RIGHT;
-                  } else {
-                     flags = MAX_TOP | MAX_HORIZ;
-                  }
-               } else if(atBottom & atLeft) {
-                  if(atSideFirst) {
-                     flags = MAX_BOTTOM | MAX_LEFT;
-                  } else {
-                     flags = MAX_BOTTOM | MAX_HORIZ;
-                  }
-               } else if(atBottom & atRight) {
-                  if(atSideFirst) {
-                     flags = MAX_BOTTOM | MAX_RIGHT;
-                  } else {
-                     flags = MAX_BOTTOM | MAX_HORIZ;
-                  }
-               } else if(atLeft) {
-                  flags = MAX_LEFT | MAX_VERT;
-                  atSideFirst = 1;
-               } else if(atRight) {
-                  flags = MAX_RIGHT | MAX_VERT;
-                  atSideFirst = 1;
-               } else if(atTop | atBottom) {
-                  flags = MAX_VERT | MAX_HORIZ;
-                  atSideFirst = 0;
+            if(event.xmotion.y_root <= sp->y && AboveDesktop()) {
+               atTop = 1;
+               SetClientDesktop(currentClient, currentDesktop);
+               RestackClients();
+               DiscardMotionEvents(&event, np->window);
+               np->x = event.xmotion.x_root - startx;
+               np->y = rootHeight - 2 - starty;
+               MoveMouse(rootWindow, np->x + startx, np->y + starty);
+            } else if(event.xmotion.y_root  >= sp->y + sp->height - 1 && BelowDesktop()) {
+               atBottom = 1;
+               SetClientDesktop(currentClient, currentDesktop);
+               RestackClients();
+               DiscardMotionEvents(&event, np->window);
+               np->x = event.xmotion.x_root - startx;
+               np->y = 1 - starty;
+               MoveMouse(rootWindow, np->x + startx, np->y + starty);
+            }
+            DoSnap(np);
+         } else {     
+            if(event.xmotion.x_root <= sp->x) {
+               atLeft = 1;
+            } else if(event.xmotion.x_root >= sp->x + sp->width - 1) {
+               atRight = 1;
+            }
+            if(event.xmotion.y_root <= sp->y) {
+               atTop = 1;
+            } else if(event.xmotion.y_root >= sp->y + sp->height - 1) {
+               atBottom = 1;
+            }
+            
+            if(atTop & atLeft) {
+               if(atSideFirst) {
+                  flags = MAX_TOP | MAX_LEFT;
+               } else {
+                  flags = MAX_TOP | MAX_HORIZ;
                }
-               if(flags != np->state.maxFlags) {
-                  if(settings.moveMode == MOVE_OUTLINE) {
-                     ClearOutline();
-                  }
-                  MaximizeClient(np, flags);
+            } else if(atTop & atRight) {
+               if(atSideFirst) {
+                  flags = MAX_TOP | MAX_RIGHT;
+               } else {
+                  flags = MAX_TOP | MAX_HORIZ;
                }
-               if(!np->state.maxFlags) {
-                  DoSnap(np);
+            } else if(atBottom & atLeft) {
+               if(atSideFirst) {
+                   flags = MAX_BOTTOM | MAX_LEFT;
+               } else {
+                   flags = MAX_BOTTOM | MAX_HORIZ;
                }
-            } else {
+            } else if(atBottom & atRight) {
+               if(atSideFirst) {
+                  flags = MAX_BOTTOM | MAX_RIGHT;
+               } else {
+                  flags = MAX_BOTTOM | MAX_HORIZ;
+               }
+            } else if(atLeft) {
+               flags = MAX_LEFT | MAX_VERT;
+               atSideFirst = 1;
+            } else if(atRight) {
+               flags = MAX_RIGHT | MAX_VERT;
+               atSideFirst = 1;
+            } else if(atTop | atBottom) {
+               flags = MAX_VERT | MAX_HORIZ;
+               atSideFirst = 0;
+            }
+            MaximizeClient(np, flags);
+            if(!np->state.maxFlags) {
                DoSnap(np);
             }
          }
 
          if(flags != MAX_NONE) {
-            RestartMove(np, &doMove);
+            doMove = 0; RestartMove(np, &doMove);
          } else if(!doMove && (abs(np->x - oldx) > MOVE_DELTA
             || abs(np->y - oldy) > MOVE_DELTA)) {
 
@@ -843,21 +862,4 @@ void UpdateDesktop(const TimeType *now)
    }
    moveTime = *now;
 
-   /* We temporarily mark the client as hidden to avoid hidding it
-    * when changing desktops. */
-   currentClient->state.status |= STAT_HIDDEN;
-   if(atLeft && LeftDesktop()) {
-      SetClientDesktop(currentClient, currentDesktop);
-      RequireRestack();
-   } else if(atRight && RightDesktop()) {
-      SetClientDesktop(currentClient, currentDesktop);
-      RequireRestack();
-   } else if(atTop && AboveDesktop()) {
-      SetClientDesktop(currentClient, currentDesktop);
-      RequireRestack();
-   } else if(atBottom && BelowDesktop()) {
-      SetClientDesktop(currentClient, currentDesktop);
-      RequireRestack();
-   }
-   currentClient->state.status &= ~STAT_HIDDEN;
 }
