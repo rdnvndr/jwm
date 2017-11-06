@@ -107,6 +107,7 @@ Menu *CreateWindowMenu(ClientNode *np)
    }
 
    if(!(np->state.status & STAT_WMDIALOG)) {
+      AddWindowMenuItem(menu, NULL, MA_NONE, np, 0);
       if(settings.desktopCount > 1) {
          if(np->state.status & STAT_STICKY) {
             AddWindowMenuItem(menu, _("Unstick"), MA_STICK, np, 0);
