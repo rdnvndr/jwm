@@ -795,6 +795,22 @@ void Render(const TaskBarType *bp)
          }
       }
       DrawButton(&button);
+      
+      if(tp->clients->client->state.status & STAT_MINIMIZED) {
+        const int isize = (bp->itemHeight + 7) / 8;
+        int i;
+        
+        GC gc; 
+        gc = JXCreateGC(display, button.drawable, 0, NULL);
+        JXSetForeground(display, gc, colors[COLOR_TRAY_FG]);
+        for(i = 0; i <= isize; i++) {
+           const int xc = x - 6 + button.width + isize - i - button.border;
+           const int y1 = bp->itemHeight - 3 - isize + i - button.border - 1;
+           const int y2 = bp->itemHeight - 3 - button.border - 1;
+           JXDrawLine(display, button.drawable, gc, xc, y1, xc, y2);
+        }
+      }
+
       if(displayName) {
          Release(displayName);
       }

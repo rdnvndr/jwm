@@ -327,6 +327,11 @@ void MinimizeTransients(ClientNode *np, char lower)
    if(np->state.status & STAT_ACTIVE) {
       FocusNextStacked(np);
    }
+   /* A minimized client can't be active. */
+   if(activeClient == np) {
+      activeClient = NULL;
+      np->state.status &= ~STAT_ACTIVE;
+   }
 
    if(lower) {
       /* Move this client to the end of the layer list. */
