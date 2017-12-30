@@ -217,12 +217,10 @@ endif()
 # https://cmake.org/cmake/help/v2.8.12/cmake.html#module:FindGettext
 find_package(Gettext)
 if(GETTEXT_FOUND)
-	file (GLOB PO_FILES po/"*.po")
+	file (GLOB PO_FILES ${CMAKE_SOURCE_DIR}/po/*.po)
 	message( "msgfmt: ${GETTEXT_MSGFMT_EXECUTABLE}")
 	message( "msgmerge: ${GETTEXT_MSGMERGE_EXECUTABLE}")
-	#GETTEXT_PROCESS_POT(po/jwm.pot)
-	GETTEXT_PROCESS_PO_FILES( PO_FILES ${PO_FILES})
-	#GETTEXT_CREATE_TRANSLATIONS (outputFile [ALL] file1 ... fileN )
+    GETTEXT_CREATE_TRANSLATIONS(po/jwm.pot ALL ${PO_FILES})
 endif()
 
 ########### Source #####################
